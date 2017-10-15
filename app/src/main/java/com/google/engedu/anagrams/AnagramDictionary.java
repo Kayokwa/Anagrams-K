@@ -15,6 +15,8 @@
 
 package com.google.engedu.anagrams;
 
+import android.util.Log;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
@@ -27,14 +29,14 @@ import java.util.Random;
 
 public class AnagramDictionary {
 
-    private static final int MIN_NUM_ANAGRAMS = 5;
+    private static final int MIN_NUM_ANAGRAMS = 1;
     private static final int DEFAULT_WORD_LENGTH = 3;
     private static final int MAX_WORD_LENGTH = 7;
-    private Random random = new Random();
-    private ArrayList<String> wordlist = new ArrayList<String>();
+    private int wordLength = DEFAULT_WORD_LENGTH;
+    private ArrayList<String> wordlist = new ArrayList<>();
     private HashSet<String> wordSet = new HashSet<String>();
     private HashMap<String, ArrayList<String>> lettersToWord = new HashMap<String, ArrayList<String>>();
-
+    private HashMap<Integer, ArrayList<String>> sizeToWord = new HashMap<Integer, ArrayList<String>>();
 
 
     public AnagramDictionary(Reader reader) throws IOException {
@@ -42,6 +44,8 @@ public class AnagramDictionary {
         String line;
         while((line = in.readLine()) != null) {
             wordlist.add(line.trim());
+            wordSet.add(line.trim());
+
             if(lettersToWord.containsKey(sortLetters(line.trim())))
             {
                 lettersToWord.get(sortLetters(line.trim())).add(line.trim());
@@ -52,11 +56,31 @@ public class AnagramDictionary {
                 listOfWords.add(line.trim());
                 lettersToWord.put(sortLetters(line.trim()),listOfWords);
             }
+
+            if(sizeToWord.containsKey(line.trim().length()))
+            {
+                sizeToWord.get(line.trim().length()).add(line.trim());
+            }
+            else
+            {
+                ArrayList<String> sameSizedWords =  new ArrayList<String>();
+                sameSizedWords.add(line.trim());
+                sizeToWord.put(line.trim().length(),sameSizedWords);
+            }
+
+
         }
     }
 
     public boolean isGoodWord(String word, String base) {
-        return true;
+
+            if(word.equals(base))
+                return false;
+
+        if(wordSet.contains(word) && !word.contains(base))
+            return true;
+        else
+            return false;
     }
 
     public String sortLetters(String unSortedWord)
@@ -69,9 +93,7 @@ public class AnagramDictionary {
     public List<String> getAnagrams(String targetWord) {
         ArrayList<String> result = new ArrayList<String>();
 
-
         //Loop over all the words in our dictionary and return any anagrams
-
         for(String dictWord: wordlist)
         {
             if(targetWord.length() == dictWord.length()) {
@@ -86,10 +108,46 @@ public class AnagramDictionary {
 
     public List<String> getAnagramsWithOneMoreLetter(String word) {
         ArrayList<String> result = new ArrayList<String>();
+        String [] myAlphabet = { "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"};
+
+        for (String aWord: lettersToWord.get(sortLetters(word)))
+        {
+            for(int i=0;i<myAlphabet.length;i++)
+            {
+                if(wordSet.contains(myAlphabet[i] + aWord) && !result.contains(myAlphabet[i] + aWord) && !(myAlphabet[i] + aWord).contains(word))
+                result.add(myAlphabet[i] + aWord); // append current letter to the beginning of the word
+
+                if(wordSet.contains(aWord + myAlphabet[i]) &&  !result.contains(aWord + myAlphabet[i]) && !(aWord + myAlphabet[i]).contains(word))
+                result.add(aWord + myAlphabet[i]); // append current letter to the beginning of the word
+            }
+        }
+
+        Log.i("ANSWERS", result.toString());
+
+        if(result.size()==0)
+            result.add("none");
         return result;
     }
 
     public String pickGoodStarterWord() {
-        return "stop";
+
+        Random random = new Random();
+
+        ArrayList<String> sameLengthWords = sizeToWord.get(wordLength);
+
+        int index = random.nextInt(sameLengthWords.size());
+
+        while(true)
+        {
+            if(lettersToWord.get(sortLetters(sameLengthWords.get(index))).size()>=MIN_NUM_ANAGRAMS) {
+                Log.i("KK", "Word is " + sameLengthWords.get(index) +"-------- \n" + lettersToWord.get(sortLetters(sameLengthWords.get(index))).toString());
+                wordLength++;
+                return sameLengthWords.get(index);
+            }
+
+            index = random.nextInt(sameLengthWords.size());
+        }
+
+
     }
 }
